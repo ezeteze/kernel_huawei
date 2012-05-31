@@ -2350,6 +2350,7 @@ kgsl_ptdata_init(void)
 
 static void kgsl_core_exit(void)
 {
+	unregister_chrdev_region(kgsl_driver.major, KGSL_DEVICE_MAX);
 	kgsl_mmu_ptpool_destroy(kgsl_driver.ptpool);
 	kgsl_driver.ptpool = NULL;
 
