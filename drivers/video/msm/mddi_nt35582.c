@@ -283,7 +283,11 @@ static int __init nt35582_init(void)
 	    pinfo->clk_min = 192000000;
 	    pinfo->clk_max = 192000000;
         MDDI_LCD_DEBUG("%s: BYD LCD and Truly LCD,set MDDI_CLK=%d \n",__func__, pinfo->clk_rate);
+#ifdef CONFIG_FB_MSM_DEFAULT_DEPTH_RGB565
+		pinfo->lcd.vsync_enable = FALSE;
+#else
 		pinfo->lcd.vsync_enable = TRUE;
+#endif
 /* Reduce the fps,sync depend on the vsync signal*/
         pinfo->lcd.refx100 = 4600;
 		pinfo->lcd.v_back_porch = 4;
