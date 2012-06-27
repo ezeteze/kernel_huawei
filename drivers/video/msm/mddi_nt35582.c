@@ -289,10 +289,10 @@ static int __init nt35582_init(void)
 		pinfo->lcd.vsync_enable = TRUE;
 #endif
 /* Reduce the fps,sync depend on the vsync signal*/
-        pinfo->lcd.refx100 = 4600;
-		pinfo->lcd.v_back_porch = 4;
-		pinfo->lcd.v_front_porch = 10;
-		pinfo->lcd.v_pulse_width = 2;
+        pinfo->lcd.refx100 = 4000;
+		pinfo->lcd.v_back_porch = 0;
+		pinfo->lcd.v_front_porch = 0;
+		pinfo->lcd.v_pulse_width = 22;
 		pinfo->lcd.hw_vsync_mode = TRUE;
 		pinfo->lcd.vsync_notifier_period = 0;
 		pinfo->bl_max = 255;

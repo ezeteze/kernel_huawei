@@ -1,4 +1,4 @@
-/* Copyright (c) 2010-2012, Code Aurora Forum. All rights reserved.
+/* Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -27,12 +27,11 @@
 #include <linux/workqueue.h>
 #include <linux/android_pmem.h>
 #include <linux/clk.h>
-#include <media/msm/vidc_type.h>
-#include <media/msm/vcd_api.h>
-#include <media/msm/vidc_init.h>
 
+#include "vidc_type.h"
+#include "vcd_api.h"
 #include "venc_internal.h"
-#include "vcd_res_tracker_api.h"
+#include "vidc_init.h"
 
 #define VID_ENC_NAME	"msm_vidc_enc"
 
@@ -197,8 +196,6 @@ static void vid_enc_output_frame_done(struct video_client_ctx *client_ctx,
 	int pmem_fd;
 	struct file *file;
 	s32 buffer_index = -1;
-	u32 ion_flag = 0;
-	struct ion_handle *buff_handle = NULL;
 
 	if (!client_ctx || !vcd_frame_data) {
 		ERR("vid_enc_input_frame_done() NULL pointer\n");
@@ -261,18 +258,7 @@ static void vid_enc_output_frame_done(struct video_client_ctx *client_ctx,
 		venc_msg->venc_msg_info.statuscode =
 			VEN_S_EFATAL;
 	}
-	if (venc_msg->venc_msg_info.buf.len > 0) {
-		ion_flag = vidc_get_fd_info(client_ctx, BUFFER_TYPE_OUTPUT,
-					pmem_fd, kernel_vaddr, buffer_index,
-					&buff_handle);
-		if (ion_flag == CACHED && buff_handle) {
-			msm_ion_do_cache_op(client_ctx->user_ion_client,
-				buff_handle,
-				(unsigned long *) kernel_vaddr,
-				(unsigned long)venc_msg->venc_msg_info.buf.len,
-				ION_IOC_CLEAN_INV_CACHES);
-		}
-	}
+
 	mutex_lock(&client_ctx->msg_queue_lock);
 	list_add_tail(&venc_msg->list, &client_ctx->msg_queue);
 	mutex_unlock(&client_ctx->msg_queue_lock);
@@ -521,7 +507,7 @@ static int vid_enc_open(struct inode *inode, struct file *file)
 {
 	s32 client_index;
 	struct video_client_ctx *client_ctx;
-	int rc = 0;
+	u32 vcd_status = VCD_ERR_FAIL;
 	u8 client_count = 0;
 
 	INFO("\n msm_vidc_enc: Inside %s()", __func__);
@@ -557,7 +543,6 @@ static int vid_enc_open(struct inode *inode, struct file *file)
 
 	init_completion(&client_ctx->event);
 	mutex_init(&client_ctx->msg_queue_lock);
-	mutex_init(&client_ctx->enrty_queue_lock);
 	INIT_LIST_HEAD(&client_ctx->msg_queue);
 	init_waitqueue_head(&client_ctx->msg_wait);
 	if (vcd_get_ion_status()) {
@@ -567,11 +552,11 @@ static int vid_enc_open(struct inode *inode, struct file *file)
 			return -EFAULT;
 		}
 	}
-	rc = vcd_open(vid_enc_device_p->device_handle, false,
-		vid_enc_vcd_cb, client_ctx, 0);
+	vcd_status = vcd_open(vid_enc_device_p->device_handle, false,
+		vid_enc_vcd_cb, client_ctx);
 	client_ctx->stop_msg = 0;
 
-	if (!rc) {
+	if (!vcd_status) {
 		wait_for_completion(&client_ctx->event);
 		if (client_ctx->event_status) {
 			ERR("callback for vcd_open returned error: %u",
@@ -580,13 +565,13 @@ static int vid_enc_open(struct inode *inode, struct file *file)
 			return -EFAULT;
 		}
 	} else {
-		ERR("vcd_open returned error: %u", rc);
+		ERR("vcd_open returned error: %u", vcd_status);
 		mutex_unlock(&vid_enc_device_p->lock);
-		return rc;
+		return -EFAULT;
 	}
 	file->private_data = client_ctx;
 	mutex_unlock(&vid_enc_device_p->lock);
-	return rc;
+	return 0;
 }
 
 static int vid_enc_release(struct inode *inode, struct file *file)
@@ -1314,28 +1299,26 @@ static long vid_enc_ioctl(struct file *file,
 	}
 	case VEN_IOCTL_GET_SEQUENCE_HDR:
 	{
-		struct venc_seqheader seq_header;
+		struct venc_seqheader seq_header, seq_header_user;
 		if (copy_from_user(&venc_msg, arg, sizeof(venc_msg)))
 			return -EFAULT;
 
-		if (copy_from_user(&seq_header, venc_msg.in,
-			sizeof(seq_header)))
-			return -EFAULT;
-
 		DBG("VEN_IOCTL_GET_SEQUENCE_HDR\n");
+		if (copy_from_user(&seq_header_user, venc_msg.in,
+			sizeof(seq_header_user)))
+			return -EFAULT;
+		seq_header.hdrbufptr = NULL;
 		result = vid_enc_get_sequence_header(client_ctx,
 				&seq_header);
-		if (!result) {
-			ERR("get sequence header failed\n");
+		if (result && ((copy_to_user(seq_header_user.hdrbufptr,
+			seq_header.hdrbufptr, seq_header.hdrlen)) ||
+			(copy_to_user(&seq_header_user.hdrlen,
+			&seq_header.hdrlen,
+			sizeof(seq_header.hdrlen)))))
+				result = false;
+		kfree(seq_header.hdrbufptr);
+		if (!result)
 			return -EIO;
-		}
-		DBG("seq_header: buf=%x, sz=%d, hdrlen=%d\n",
-			(int)seq_header.hdrbufptr,
-			(int)seq_header.bufsize,
-			(int)seq_header.hdrlen);
-		if (copy_to_user(venc_msg.out, &seq_header,
-			sizeof(seq_header)))
-			return -EFAULT;
 		break;
 	}
 	case VEN_IOCTL_CMD_REQUEST_IFRAME:
@@ -1576,34 +1559,6 @@ static long vid_enc_ioctl(struct file *file,
 					&vcd_property_hdr, &live_mode);
 		if (vcd_status) {
 			pr_err(" Setting metabuffer mode failed");
-			return -EIO;
-		}
-		break;
-	}
-	case VEN_IOCTL_SET_EXTRADATA:
-	case VEN_IOCTL_GET_EXTRADATA:
-	{
-		u32 extradata_flag;
-		DBG("VEN_IOCTL_(G)SET_EXTRADATA\n");
-		if (copy_from_user(&venc_msg, arg, sizeof(venc_msg)))
-			return -EFAULT;
-		if (cmd == VEN_IOCTL_SET_EXTRADATA) {
-			if (copy_from_user(&extradata_flag, venc_msg.in,
-					sizeof(u32)))
-				return -EFAULT;
-			result = vid_enc_set_get_extradata(client_ctx,
-					&extradata_flag, true);
-		} else {
-			result = vid_enc_set_get_extradata(client_ctx,
-					&extradata_flag, false);
-			if (result) {
-				if (copy_to_user(venc_msg.out, &extradata_flag,
-						sizeof(u32)))
-					return -EFAULT;
-			}
-		}
-		if (!result) {
-			ERR("setting VEN_IOCTL_(G)SET_LIVE_MODE failed\n");
 			return -EIO;
 		}
 		break;
