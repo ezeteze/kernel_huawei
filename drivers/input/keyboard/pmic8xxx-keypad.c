@@ -19,6 +19,7 @@
 #include <linux/bitops.h>
 #include <linux/delay.h>
 #include <linux/mutex.h>
+#include <linux/earlysuspend.h>
 
 #include <linux/mfd/pm8xxx/core.h>
 #include <linux/mfd/pm8xxx/gpio.h>
@@ -108,6 +109,7 @@ struct pmic8xxx_kp {
 	u16 stuckstate[PM8XXX_MAX_ROWS];
 
 	u8 ctrl_reg;
+	struct early_suspend early_suspend;
 };
 
 static int pmic8xxx_kp_write_u8(struct pmic8xxx_kp *kp,
@@ -520,6 +522,15 @@ static void pmic8xxx_kp_close(struct input_dev *dev)
 	pmic8xxx_kp_disable(kp);
 }
 
+static void pmic8xxx_kp_early_suspend(struct early_suspend *h) {
+}
+
+static void pmic8xxx_kp_late_resume(struct early_suspend *h) {
+	struct pmic8xxx_kp *kp = container_of(h,struct pmic8xxx_kp,early_suspend);
+	printk("kp_late_resume\n");
+	pmic8xxx_kp_enable(kp);
+}
+
 /*
  * keypad controller should be initialized in the following sequence
  * only, otherwise it might get into FSM stuck state.
@@ -530,6 +541,7 @@ static void pmic8xxx_kp_close(struct input_dev *dev)
  * - set irq edge type.
  * - enable the keypad controller.
  */
+
 static int __devinit pmic8xxx_kp_probe(struct platform_device *pdev)
 {
 	const struct pm8xxx_keypad_platform_data *pdata =
@@ -708,6 +720,10 @@ static int __devinit pmic8xxx_kp_probe(struct platform_device *pdev)
 	}
 
 	device_init_wakeup(&pdev->dev, pdata->wakeup);
+	kp->early_suspend.level = EARLY_SUSPEND_LEVEL_BLANK_SCREEN;
+        kp->early_suspend.suspend = pmic8xxx_kp_early_suspend;
+        kp->early_suspend.resume = pmic8xxx_kp_late_resume;
+        register_early_suspend(&kp->early_suspend);
 
 	return 0;
 
