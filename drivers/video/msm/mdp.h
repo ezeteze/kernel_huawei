@@ -53,6 +53,8 @@ extern struct workqueue_struct *mdp_hist_wq;
 extern struct work_struct mdp_histogram_worker;
 extern boolean mdp_is_hist_valid;
 
+extern uint32 mdp_intr_mask;
+
 #define MDP4_REVISION_V1		0
 #define MDP4_REVISION_V2		1
 #define MDP4_REVISION_V2_1	2
@@ -92,6 +94,15 @@ struct mdp_table_entry {
 
 extern struct mdp_ccs mdp_ccs_yuv2rgb ;
 extern struct mdp_ccs mdp_ccs_rgb2yuv ;
+
+struct vsync {
+	ktime_t vsync_time;
+	struct device *dev;
+	struct work_struct vsync_work;
+	int vsync_irq_enabled;
+};
+
+extern struct vsync vsync_cntrl;
 
 /*
  * MDP Image Structure
@@ -243,6 +254,7 @@ struct mdp_dma_data {
 #endif
 #define MDP_HISTOGRAM_TERM 0x80
 #define MDP_OVERLAY2_TERM 0x100
+#define MDP_VSYNC_TERM 0x1000
 
 #define ACTIVE_START_X_EN BIT(31)
 #define ACTIVE_START_Y_EN BIT(31)
@@ -262,6 +274,7 @@ struct mdp_dma_data {
 #define MDP_PPP_DONE 				BIT(0)
 #define TV_OUT_DMA3_DONE    BIT(6)
 #define TV_ENC_UNDERRUN     BIT(7)
+#define MDP_PRIM_RDPTR      BIT(8)
 #define TV_OUT_DMA3_START   BIT(13)
 #define MDP_HIST_DONE       BIT(20)
 
@@ -768,6 +781,16 @@ static inline int mdp4_overlay_dsi_state_get(void)
 {
 	return 0;
 }
+static inline int msmfb_overlay_vsync_ctrl(struct fb_info *info,
+						void __user *argp)
+{
+	return 0;
+}
 #endif
+void mdp_dma_vsync_ctrl(int enable);
+void mdp_dma_video_vsync_ctrl(int enable);
+void mdp_dma_lcdc_vsync_ctrl(int enable);
+void mdp3_vsync_irq_enable(int intr, int term);
+void mdp3_vsync_irq_disable(int intr, int term);
 
 #endif /* MDP_H */
