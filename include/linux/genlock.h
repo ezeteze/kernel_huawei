@@ -50,3 +50,4 @@ struct genlock_lock {
 #define GENLOCK_IOC_DREADLOCK _IOW(GENLOCK_IOC_MAGIC, 6, \
 	struct genlock_lock)
 #endif
+
