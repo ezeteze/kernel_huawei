@@ -7988,10 +7988,8 @@ static uint32_t msm_sdcc_setup_vreg(int dev_id, unsigned int enable)
 	if (test_bit(dev_id, &vreg_sts) == enable)
 		return rc;
 
-//	if (!enable || enabled_once[dev_id - 1])
-//		return 0;
-
-	printk("msm_sdcc_setup_vreg %d %d\n",dev_id,enable);
+	if (!enable || enabled_once[dev_id - 1])
+		return 0;
 
 	if (!curr)
 		return -ENODEV;
