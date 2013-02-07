@@ -266,7 +266,7 @@ obj-$(CONFIG_HUAWEI_KEY_TEST) += huawei_key_test.o
 obj-$(CONFIG_HUAWEI_SMEM_SLEEP_LOG) += smem_sleep_log.o
 #/* DTS2011030801141 renxigang 20110308 end > */
 #/*< DTS2012011801998 chenxi 20120203 begin */
-obj-$(CONFIG_HUAWEI_KERNEL) += smem_vendor_huawei.o
+obj-$(CONFIG_HUAWEI_KERNEL) += smem_vendor_huawei.o wcnss_prealloc.o
 #/* DTS2012011801998 chenxi 20120203 end >*/
 
 obj-$(CONFIG_MACH_SAPPHIRE) += board-sapphire.o board-sapphire-gpio.o
