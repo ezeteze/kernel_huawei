@@ -31,7 +31,6 @@ modules.builtin
 *.lzo
 *.patch
 *.gcno
-*.rej
 
 #
 # Top-level generic files
@@ -50,7 +49,6 @@ modules.builtin
 #
 !.gitignore
 !.mailmap
-!.config
 
 #
 # Generated include files
@@ -79,11 +77,3 @@ GTAGS
 *.orig
 *~
 \#*#
-
-# compressed boot files
-arch/arm/boot/compressed/lib1funcs.S
-arch/arm/boot/compressed/piggy.gzip
-arch/arm/boot/compressed/vmlinux
-arch/arm/boot/compressed/piggy.xzkern
-include/linux/compile.h
-include/linux/autoconf.h
