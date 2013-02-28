@@ -46,6 +46,7 @@
 #include <linux/uaccess.h>
 #include <linux/wakelock.h>
 
+#undef CONFIG_HUAWEI_KERNEL
 /*< DTS2012011801998 chenxi 20120203 begin */
 #ifdef CONFIG_HUAWEI_KERNEL
 #include <mach/oem_rapi_client.h>
