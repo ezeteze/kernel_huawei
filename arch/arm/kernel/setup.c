@@ -613,14 +613,6 @@ static int __init parse_tag_mem32(const struct tag *tag)
 
 __tagtable(ATAG_MEM, parse_tag_mem32);
 
-static int __init parse_tag_sbl_mem(const struct tag *tag)
-{
-        printk("parse_tag_sbl_mem: addr=0x%x, size=0x%x\n",tag->u.mem.start, tag->u.mem.size);
-        return arm_add_memory(tag->u.mem.start, tag->u.mem.size);
-}
-
-__tagtable(0x5441000C, parse_tag_sbl_mem);
-
 #if defined(CONFIG_VGA_CONSOLE) || defined(CONFIG_DUMMY_CONSOLE)
 struct screen_info screen_info = {
  .orig_video_lines	= 30,

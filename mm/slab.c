@@ -3661,7 +3661,6 @@ kmem_cache_alloc_trace(size_t size, struct kmem_cache *cachep, gfp_t flags)
 {
 	void *ret;
 
-//	WARN(size>4096,"size bigger than 4K %d\n",size);
 	ret = __cache_alloc(cachep, flags, __builtin_return_address(0));
 
 	trace_kmalloc(_RET_IP_, ret,
@@ -3749,7 +3748,6 @@ static __always_inline void *__do_kmalloc(size_t size, gfp_t flags,
 	struct kmem_cache *cachep;
 	void *ret;
 
-//	 WARN(size>4096,"size bigger than 4K %d\n",size);
 	/* If you want to save a few bytes .text space: replace
 	 * __ with kmem_.
 	 * Then kmalloc uses the uninlined functions instead of the inline
