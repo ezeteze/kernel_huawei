@@ -752,8 +752,10 @@ kgsl_sharedmem_find_region(struct kgsl_process_private *private,
 	unsigned int gpuaddr, size_t size)
 {
 	struct rb_node *node = private->mem_rb.rb_node;
+
 	if (!kgsl_mmu_gpuaddr_in_range(gpuaddr))
 		return NULL;
+
 	while (node != NULL) {
 		struct kgsl_mem_entry *entry;
 
@@ -2351,7 +2353,6 @@ kgsl_ptdata_init(void)
 
 static void kgsl_core_exit(void)
 {
-	unregister_chrdev_region(kgsl_driver.major, KGSL_DEVICE_MAX);
 	kgsl_mmu_ptpool_destroy(kgsl_driver.ptpool);
 	kgsl_driver.ptpool = NULL;
 
