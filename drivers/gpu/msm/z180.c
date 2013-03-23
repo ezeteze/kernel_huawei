@@ -475,14 +475,12 @@ z180_cmdstream_issueibcmds(struct kgsl_device_private *dev_priv,
 	kgsl_pwrscale_busy(device);
 
 	/* Make sure the next ringbuffer entry has a marker */
-
 	addmarker(&z180_dev->ringbuffer, z180_dev->current_timestamp);
 
 	/* monkey patch the IB so that it jumps back to the ringbuffer */
 	kgsl_sharedmem_writel(&entry->memdesc,
 		      ((sizedwords + 1) * sizeof(unsigned int)),
 		      rb_gpuaddr(z180_dev, z180_dev->current_timestamp));
-
 	kgsl_sharedmem_writel(&entry->memdesc,
 			      ((sizedwords + 2) * sizeof(unsigned int)),
 			      nextcnt);
